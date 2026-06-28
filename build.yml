@@ -13,17 +13,127 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Auto-Fix Directory Structure
+      - name: Hard Reset and Auto-Generate Clean Project
         run: |
-          echo "=== Проверка структуры папок ==="
-          # Если скрипт находит дублирующуюся папку app/app, он сам переносит всё содержимое в правильное место
-          if [ -d "app/app" ]; then
-            echo "Найдена ошибочная вложенность app/app. Исправляю на лету..."
-            find app/app/ -maxdepth 1 -mindepth 1 -exec mv -t app/ {} +
-            rm -rf app/app
+          echo "=== Спасение исходного кода ==="
+          # Находим твой index.html, где бы он сейчас ни лежал в путанице папок
+          HTML_PATH=$(find . -name "index.html" | head -n 1)
+          if [ -z "$HTML_PATH" ]; then
+            echo "КРИТИЧЕСКАЯ ОШИБКА: Файл index.html не найден в вашем репозитории!"
+            exit 1
           fi
-          echo "=== Итоговая структура перед компиляцией ==="
-          find . -not -path '*/.*'
+          mkdir -p /tmp/assets_backup
+          cp "$HTML_PATH" /tmp/assets_backup/index.html
+          
+          echo "=== Тотальное удаление старых папок ==="
+          # Полностью вычищаем рабочую директорию сервера от старых ошибок сборки
+          rm -rf app settings.gradle build.gradle
+          
+          echo "=== Разворачивание идеальной структуры ==="
+          mkdir -p app/src/main/java/com/glavk/app
+          mkdir -p app/src/main/assets
+          
+          # Возвращаем сохраненный index.html на его законное место
+          cp /tmp/assets_backup/index.html app/src/main/assets/index.html
+          
+          # Генерируем правильный settings.gradle
+          cat << 'EOF' > settings.gradle
+          rootProject.name = "GlavkApp"
+          include ':app'
+          EOF
+          
+          # Генерируем правильный КОРНЕВОЙ build.gradle (без ошибочных плагинов на 1 строке)
+          cat << 'EOF' > build.gradle
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
+          }
+          allprojects {
+              repositories { google(); mavenCentral() }
+          }
+          EOF
+          
+          # Генерируем внутренний app/build.gradle
+          cat << 'EOF' > app/build.gradle
+          apply plugin: 'com.android.application'
+          android {
+              compileSdk 34
+              namespace 'com.glavk.app'
+              defaultConfig {
+                  applicationId "com.glavk.app"
+                  minSdk 21
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+          }
+          EOF
+          
+          # Генерируем чистый системный Манифест
+          cat << 'EOF' > app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application android:label="12 Главк" android:allowBackup="true" android:supportsRtl="true">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+          
+          # Генерируем премиальный нативный Java-код с JavaScript-мостом
+          cat << 'EOF' > app/src/main/java/com/glavk/app/MainActivity.java
+          package com.glavk.app;
+          import android.app.Activity;
+          import android.content.Context;
+          import android.os.Bundle;
+          import android.view.Window;
+          import android.view.WindowManager;
+          import android.webkit.JavascriptInterface;
+          import android.webkit.WebSettings;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+          import android.view.ViewGroup;
+          import android.widget.LinearLayout;
+          import android.widget.Toast;
+          public class MainActivity extends Activity {
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  requestWindowFeature(Window.FEATURE_NO_TITLE);
+                  getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+                  LinearLayout layout = new LinearLayout(this);
+                  layout.setOrientation(LinearLayout.VERTICAL);
+                  layout.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                  WebView webView = new WebView(this);
+                  webView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                  WebSettings webSettings = webView.getSettings();
+                  webSettings.setJavaScriptEnabled(true);
+                  webSettings.setDomStorageEnabled(true);
+                  webSettings.setAllowFileAccess(true);
+                  webSettings.setAllowContentAccess(true);
+                  webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
+                  webView.addJavascriptInterface(new WebAppInterface(this), "AndroidBridge");
+                  webView.setWebViewClient(new WebViewClient());
+                  webView.loadUrl("file:///android_asset/index.html");
+                  layout.addView(webView);
+                  setContentView(layout);
+              }
+              public class WebAppInterface {
+                  Context mContext;
+                  WebAppInterface(Context c) { mContext = c; }
+                  @JavascriptInterface
+                  public void showSystemToast(String message) {
+                      Toast.makeText(mContext, message, Toast.LENGTH_LONG).show();
+                  }
+              }
+          }
+          EOF
+          echo "=== Проект пересобран на лету, запускаю компиляцию ==="
 
       - name: Build Application
         run: |
