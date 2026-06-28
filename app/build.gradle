@@ -1,0 +1,20 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdk 34
+    namespace 'com.glavk.app'
+
+    defaultConfig {
+        applicationId "com.glavk.app"
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+}
