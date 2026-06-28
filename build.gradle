@@ -1,7 +1,30 @@
-buildscript {
-    repositories { google(); mavenCentral() }
-    dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
-}
-allprojects {
-    repositories { google(); mavenCentral() }
+apply plugin: 'com.android.application'
+
+android {
+    compileSdk 34
+    namespace 'com.glavk.app'
+    
+    defaultConfig {
+        applicationId "com.glavk.app"
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+    
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    // Этот блок указывает компилятору правильный путь с учетом лишней папки app
+    sourceSets {
+        main {
+            manifest.srcFile 'app/src/main/AndroidManifest.xml'
+            java.srcDirs = ['app/src/main/java']
+            res.srcDirs = ['app/src/main/res']
+            assets.srcDirs = ['app/src/main/assets']
+        }
+    }
 }
