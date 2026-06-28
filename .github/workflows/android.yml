@@ -13,9 +13,14 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Diagnostic (Show File Tree)
+        run: |
+          echo "=== СТРУКТУРА ВАШИХ ПАПОК НА СЕРВЕРЕ ==="
+          find . -not -path '*/.*'
+          echo "========================================"
+
       - name: Build Application
         run: |
-          # Принудительно создаем обертку Gradle нужной версии, чтобы избежать конфликтов сервера
           gradle wrapper --gradle-version 8.2
           chmod +x gradlew
           ./gradlew assembleDebug
