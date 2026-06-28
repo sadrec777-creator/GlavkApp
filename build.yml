@@ -13,9 +13,20 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Auto-Fix Directory Structure
+        run: |
+          echo "=== Проверка структуры папок ==="
+          # Если скрипт находит дублирующуюся папку app/app, он сам переносит всё содержимое в правильное место
+          if [ -d "app/app" ]; then
+            echo "Найдена ошибочная вложенность app/app. Исправляю на лету..."
+            find app/app/ -maxdepth 1 -mindepth 1 -exec mv -t app/ {} +
+            rm -rf app/app
+          fi
+          echo "=== Итоговая структура перед компиляцией ==="
+          find . -not -path '*/.*'
+
       - name: Build Application
         run: |
-          # Принудительно создаем обертку Gradle нужной версии, чтобы избежать конфликтов сервера
           gradle wrapper --gradle-version 8.2
           chmod +x gradlew
           ./gradlew assembleDebug
